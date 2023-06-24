@@ -1,0 +1,81 @@
+* {
+    padding: 0px;
+    margin: 0px;
+    min-width: 0%;
+    min-height: 0%;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background-color: #36393e;
+    color: #fff;
+    text-align: center;
+}
+
+.infoText {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#rates {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.rateButton {
+    margin: 5px;
+    padding: 20px;
+    background-color: #ff0000;
+    border: none;
+    border-radius: 20px;
+    font-size: 20px;
+    color: #fff;
+    font-weight: bold;
+    outline: none;
+    text-shadow: 2px 2px #000;
+}
+
+.rateButton:hover {
+    opacity: 0.85;
+}
+
+.rateButton:nth-child(2) {
+    background-color: #ffa600;
+}
+
+.rateButton:nth-child(3) {
+    background-color: #00ff00;
+}
+
+#chartContainer {
+    margin: auto auto;
+    width: 80vw;
+    height: 40vh;
+}
+
+.optionsDiv {
+    width: fit-content;
+    display: inline;
+}
+
+#times {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.timeButton {
+    margin: 2.5px;
+    padding: 10px;
+    background-color: #5a5a5a;
+    border: none;
+    border-radius: 5px;
+    font-size: 20px;
+    color: #fff;
+    font-weight: bold;
+    outline: none;
+    text-shadow: 2px 2px #000;
+}
+
+.timeButton:hover {
+    opacity: 0.85;
+}

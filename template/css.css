@@ -1,0 +1,13 @@
+* {
+    padding: 0px;
+    margin: 0px;
+    min-width: 0%;
+    min-height: 0%;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background-color: #36393e;
+    color: #fff;
+    text-align: center;
+}

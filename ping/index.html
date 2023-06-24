@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>ThatTimothy</title>
+		<link href="https://images.rbxcdn.com/23421382939a9f4ae8bbe60dbe2a3e7e.ico.gzip" rel=icon>
+		<link rel="stylesheet" href="css.css">
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+		<script src="../load_essentials.js"></script>
+		<script src="js.js"></script>
+	</head>
+
+	<body onload="startPinging()">
+		<div id="header"></div>
+
+        <div id="site_container">
+            <div id="site_container_container">
+                <div id="body">
+                    <div id="top">
+                        <img id="title" src="title.png"></img>
+                    </div>
+                    <div>
+                        <div class="optionsDiv">
+                            <p class="infoText">Set Ping Rate:</p>
+                            <div id="rates">
+                                <button id="rateButton1" class="rateButton" onclick="setRate(2500, this)">Low</button>
+                                <button class="rateButton" onclick="setRate(750, this)">Medium</button>
+                                <button class="rateButton" onclick="setRate(250, this)">High</button>
+                            </div>
+                        </div>
+                        <div class="optionsDiv">
+                            <p class="infoText">Timeframe:</p>
+                            <div id="times">
+                                <button id="timeButton1" class="timeButton" onclick="setTimeframe(15000, this)">15s</button>
+                                <button class="timeButton" onclick="setTimeframe(30000, this)">30s</button>
+                                <button class="timeButton" onclick="setTimeframe(60000, this)">60s</button>
+                                <button class="timeButton" onclick="setTimeframe(120000, this)">120s</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="lastPing">Loading...</p>
+                    <div id="chartContainer">
+                        <canvas id="liveChart"></canvas>
+
+                    </div>
+                </div>
+
+                <div id="footer"></div>
+            </div>
+        </div>
+	</body>
+</html>

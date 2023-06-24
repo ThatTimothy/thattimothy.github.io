@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Roblox Game Visualizer</title>
+    <link href="https://images.rbxcdn.com/23421382939a9f4ae8bbe60dbe2a3e7e.ico.gzip" rel=icon>
+
+    <script src="../load_essentials.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js">//This gets jQuery</script>
+    <script>
+
+// Roblox Game Visualizer
+// Created By ThatTimothy (note that this is realllly old)
+
+
+var config = { //Can be configured in window, don't have to change the file everytime
+    smartUpdate: true, //If true, updates only the selected game
+    //(Will only use one request per url, instead of one for each game)
+    autoRotate: false, //Whether to rotate through games automatically
+    selectedGame: 0, //Controls selected game (0 = first game selected, 1 = 2nd, ect)
+    requestSpeed: 45, //Number of seconds in between requests, lowering this may result in throttling.
+    //Increase the value if you experience throttling errors
+    useProxy: true, //If true, uses the CORS-Anywhere proxy, which adds cors headers to any resouce, such as Roblox APIs
+    proxyUrl: "https://api.allorigins.win/raw?url=", //Proxy Url
+    //If you don't use it, browsers like chrome will most likely reject the request. 
+    //If you want, you can host your own instead and route it through that url
+    templateImage: "https://blog.roblox.com/wp-content/uploads/2017/02/island_2.png"
+    //Image used for places without a thumbnail
+}
+
+//Changing these may break code below, this is meant to show which urls are used, not to change them.
+//If you want to see what they do, replace idhere with the universeId of a game
+var urls = [
+    {
+        Url: "https://games.roblox.com/v1/games?universeIds=idhere",
+        SupportsMultiple: true, //Whether it supports multiple ids
+        About: "Access name of game, the visits count, and the players count", //Data about this url, if you are curious
+    },
+    {
+        Url: "https://games.roblox.com/v1/games/idhere/favorites/count",
+        About: "Access favorite count", //Data about this url, if you are curious
+    },
+    {
+        Url: "https://games.roblox.com/v1/games/votes?universeIds=idhere",
+        SupportsMultiple: true, //Whether it supports multiple ids
+        About: "Access vote counts", //Data about this url, if you are curious
+    },
+    {
+        Url: "https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=idhere%26countPerUniverse=1%26size=768x432%26format=Png",
+        SupportsMultiple: true, //Whether it supports multiple ids
+        LoadOnce: true, //If it need to be loaded only once
+        About: "Access thumbnails of games", //Data about this url, if you are curious
+    },
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var colors = {
+    On: "#00ff00",
+    Off: "#ff0000"
+}
+
+var themes = [
+    //Change if you want
+    {
+    Name: "Dark Mode",
+    backColor: "#333333",
+    snormalColor: "#efefef",
+    normalColor: "#ffffff",
+    },
+]
+
+const appName = "Roblox Game Visualizer"
+const appVersion = "1.0.0"
+
+var showStuff = "visible";
+
+
+var searchResult;
+var searchCreator;
+
+var sortsResult;
+
+var slotCanv = [];
+var backColor, snormalColor, normalColor;
+
+var currentApiLinks = [];
+
+function clearCanv(canv, ctx) {
+    ctx.fillStyle = backColor;
+    ctx.fillRect(0,0,canv.width,canv.height);
+}
+
+function slotsFor(canvas, load, val, extra, offset) {
+    var canv = document.getElementById(canvas);
+    var ctx = canv.getContext("2d");
+    if (!offset) {
+        clearCanv(canv, ctx);
+    }
+    var cur = slotCanv[load-1][0];
+    var other = slotCanv[load-1];
+    var nval = val.toString();
+    var buffer = ctx.measureText("0").width
+    var commabuffer = buffer/1.5
+    var extrabuffer = buffer/2
+    
+    var texpectedCommas = Math.floor((nval.length-1)/3)
+    var texpectedLength = (nval.length * buffer) + (texpectedCommas * commabuffer);
+    if (cur.length===0) {
+        other[1] = texpectedLength;
+    }
+
+    if (canv.width!==Math.floor(texpectedLength)) {
+        canv.width = canv.width + (Math.floor(Math.floor(texpectedLength)-canv.width)*0.5);
+    }
+
+    ctx.fillStyle = normalColor;
+    ctx.font = canv.height+"px Arial";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    while (cur.length<nval.length) {
+        cur.splice(0,0,[0,0,0])
+    }
+    var tot = 0;
+    if (!offset) {
+        offset = 0;
+    }
+    for (var x=0;x<cur.length-nval.length;x++) {
+        cur[x][0] = 0;
+    }
+
+    var expectedCommas = Math.floor((nval.length-1)/3)
+    var expectedLength = (nval.length*buffer) + (expectedCommas*commabuffer);
+
+    other[1]+=(expectedLength-other[1])*(1/3)
+
+    offset+=other[1]-expectedLength;
+
+    for (var x=0;x<nval.length;x++) {
+        var txt = nval.substring(x,x+1)
+        var rtxt = parseInt(txt);
+        var multi = rtxt;
+
+        var goal = (tot*10)+multi;
+
+        var xx = cur.length-nval.length+x
+
+        if (goal!==cur[xx][1]) {
+            cur[xx][1] = goal;
+            cur[xx][2] = goal-cur[xx][0];
+        }
+        var speed = 0.125;
+        var add = (goal-cur[xx][0])*(speed*(1+(xx/10)))
+
+        var lowest = 1/150;
+        if (add<0) {
+            if (add>-lowest) {
+                add = -lowest;
+            }
+        } else if (add>0) {
+            if (add<lowest) {
+                add = lowest;
+            }
+        }
+
+        cur[xx][0]+=add;
+        if (cur[xx][2]>0) {
+            if (cur[xx][0] > goal) {
+                cur[xx][0] = goal;
+            }
+        } else {
+            if (cur[xx][0] < goal) {
+                cur[xx][0] = goal;
+            }
+        }
+
+        tot = goal;
+
+        var curN = Math.floor(cur[xx][0]);
+        var goTo = goal*canv.height;
+        for (var n=-2; n<=2; n++) { //-2, -1, 0, 1, 2
+            var thisVal = curN+n;
+
+            var disVal = Math.abs(thisVal%10)
+            if (thisVal<0) {
+                disVal = 10-disVal
+            }
+            if (disVal===10) {
+                disVal = 0
+            }
+            ctx.fillText(disVal,offset,(thisVal*canv.height)-(cur[xx][0]*canv.height));
+        }
+        offset+=buffer;
+        var stepsFromLeft = (nval.length-x-1)
+        if (stepsFromLeft%3===0&&stepsFromLeft>0) {
+            ctx.fillText(",",offset,0);
+            offset+=commabuffer;
+        }
+    }
+    canv.style.visibility = showStuff;
+    return offset;
+}
+
+var games = [];
+var datas = "Playing,Visits,Favorites,Likes,Dislikes".split(",")
+var hasRequested = 0;
+
+function createGame(id) {
+    var game = {
+        Name: false,
+        Image: false,
+        ImageLoaded: false,
+        id: false,
+        placeId: false,
+        creatorData: false,
+    }
+    for (var x=0;x<datas.length;x++) {
+        game[datas[x]] = false;
+    }
+    var unId = parseInt(id);
+    if (!unId) {
+        alert("Hey, enter the universe id! (A Number)")
+    } else {
+        game.id = unId
+        for (var x=0; x<games.length; x++) {
+            if (games[x].id===game.id) {
+                return
+            }
+        }
+        games.push(game)
+    }
+
+    c = Math.min(c, 0.05);
+}
+
+var hasLoaded = 0;
+var c = 0;
+
+function determineData(array,valuename,expected) {
+    if (expected || array[valuename] === false) { //If value is valid or hasn't been set
+        array[valuename] = expected;
+    }
+};
+
+function multipleGames(data, mode) {
+    for (var g = 0; g < games.length; g++) {
+        const tG = games[g];
+        var firstId = tG.id;
+        for (var d = 0; d < data.length; d++) {
+            const tD = data[d];
+            var secondId = tD.universeId || tD.id
+            if (firstId && secondId && firstId === secondId) { //Games match
+                if (mode === 0) {//Playing and visits (multiple ids)
+                    determineData(tG,"Playing",tD.playing);
+                    determineData(tG,"Visits",tD.visits);
+                    determineData(tG,"Name",tD.name);
+                    determineData(tG,"placeId",tD.rootPlaceId);
+                    determineData(tG,"creatorData",tD.creator);
+                }  else if (mode === 2) {//Likes and Dislikes (multiple ids)
+                    determineData(tG,"Likes",tD.upVotes);
+                    determineData(tG,"Dislikes",tD.downVotes);
+                }  else if (mode === 3) {
+                    var imgV = tD.thumbnails[0].imageUrl;
+                    if (!imgV) {
+                        imgV = config.templateImage;
+                    } else {
+                        tG.ImageLoaded = true;
+                    }
+                    determineData(tG, "Image", imgV);
+                }
+                
+            }
+        }
+    }
+}
+
+var alCount = 0;
+function updateDataFrom(array,url,mode) { //Grab data for a specific mode
+    var proxyUrl = config.proxyUrl
+    if (!config.useProxy) {//Don't use proxy if not needed
+        proxyUrl = "";
+    }
+    fetch(proxyUrl + url + "&clearCacheFactor=" + Math.random()) //Get the data
+      .then(blob => blob.json())
+      .then(data => {
+            if (mode==="Search") { //Search for games
+                searchResult = data;
+            } else if(mode==="SortResults") {
+                sortsResult = data;
+            } else if (!array) {
+                multipleGames(data.data, mode)
+            } else if(mode === 1) {//Favorites
+                determineData(array,"Favorites",data.favoritesCount);
+            }   hasLoaded++;
+            return data;
+        })
+      .catch(e => {
+        console.log("A error occured: "+e);
+        if (alCount<=0) {
+            if (!config.useProxy) {
+                console.log("Due to CORS Error, the appropriate APIs could not be fetched. " +
+                "Since 'Use Proxy' is disabled, "+appName+"'s Requests were blocked by your browser. "+ 
+                "Enable the proxy to allow requests.")
+            } else {
+                console.log("Due to a request error, the appropriate APIs could not be fetched. "+
+                "This is most likely due to throttling. It is recommended that you increase the "+
+                "'RequestSpeed' config value at the top of the script.")
+            }
+        }
+        c = config.requestSpeed*2; //Something went wrong, give api time
+        alCount++;
+        return e;
+      });
+};
+
+function updateStuff() {
+    alCount = 0;
+    c--;
+    if (c<=0) {
+        if (config.autoRotate && hasLoaded>0) {
+            config.selectedGame++;
+            if (config.selectedGame > games.length) {
+                config.selectedGame = 0;
+            }
+        }
+        var allString;
+        var singleStrings;
+        var allImages = true;
+        for (var key = 0; key < games.length; key++) {
+            const game = games[key];
+            if (game) {
+                if (game.id) {
+                    if (!game.ImageLoaded) {
+                        allImages = false;
+                    }
+                    if (allString) {
+                        allString = allString+","+game.id
+                    } else {
+                        allString = game.id;
+                    }
+                    if (key === config.selectedGame || !game.loaded || !config.smartUpdate) {
+                        if (!singleStrings) {
+                            singleStrings = [game];
+                        } else {
+                            singleStrings.push(game);
+                        }
+                    }
+                    game.loaded = true;
+                }
+            }
+        };
+        var requested = [];
+        if (allString && singleStrings) {
+            for (var u = 0; u < urls.length; u++) {
+                const tU = urls[u];
+                if (tU.SupportsMultiple) {
+                    const getUrl = tU.Url.replace("idhere",allString);
+                    if (!allImages || !tU.LoadOnce) {
+                        requested.push(getUrl)
+                        updateDataFrom(false,getUrl,u);
+                    }
+                } else {
+                    for (var s = 0; s < singleStrings.length; s++) {
+                        var tS = singleStrings[s];
+                        const getUrl = tU.Url.replace("idhere",tS.id);
+                        if (!allImages || !tU.LoadOnce) {
+                            requested.push(getUrl);
+                            updateDataFrom(tS,getUrl,u);
+                        }
+                    }
+                }
+            }
+        }
+        if (requested.length!==0) {
+            c = config.requestSpeed / urls.length * requested.length
+            const urlList = requested.join("\n")
+            console.log("Requested a total of "+requested.length+" Urls:\n"+urlList
+            +"\nNext batch of requests will be sent in "+c+" seconds.")
+        }
+    }
+}
+setInterval(updateStuff,1000)
+var perScreen = 16;
+var eachSize;
+
+function start() {
+    var numberOfGames = games.length;
+    for (var x=1;x<=datas.length;x++) {
+        slotCanv.push([[],0]);
+        var thisCanv = document.getElementById(x);
+        while (!thisCanv) {
+            thisCanv = document.getElementById(x);
+        }
+        if (thisCanv) {
+            thisCanv.height = window.innerHeight/perScreen;
+            eachSize = thisCanv.height;
+            thisCanv.width = 0;
+        }
+    }
+}
+
+var mx = -1;
+var my = -1;
+
+var aa = 0;
+var setbActive = true;
+var setbup = false;
+var fS = 0.125;
+
+var sresultButton, allReset
+
+function doAnimation() {
+    var t = themes[0];
+    backColor = t.backColor;
+    normalColor = t.normalColor;
+    snormalColor = t.snormalColor;
+    var b1 = document.getElementById("lb")
+    var b2 = document.getElementById("rb")
+    var img = document.getElementById("i1")
+    if (b1 && b2 && img && img.src && img.complete) {
+        if (games.length>1) {
+            var r = img.getBoundingClientRect();
+            if (mx>=r.left && mx<=r.right && my>=r.top && my<=r.bottom) {
+                aa+=(1-aa)*0.125;
+            } else {
+                aa+=(0-aa)*0.125;
+            }
+        }
+        b1.style.opacity = aa;
+        b2.style.opacity = aa;
+    }
+    
+    var maindiv = document.getElementById("maindiv")
+    var setdiv = document.getElementById("setdiv")
+    var setb = document.getElementById("setb")
+        const size = 25;
+    var smartSet = document.getElementById("smartSet")
+    var gameList = document.getElementById("gamelist")
+    var sresultList = document.getElementById("gameAddS4")
+    sresultButton = document.getElementById("gameAddS5")
+    var useProxb = document.getElementById("proxySet")
+    var rotateb = document.getElementById("rotateSet")
+    allReset = document.getElementById("removeAll")
+    var game_search_options = document.getElementById("game_search_options")
+    var loadedheader = document.getElementById("loadedheader")
+    var bigh = document.getElementById("bigh")
+    var slideSpeed = 2;
+
+    if (maindiv && setdiv && setb && sresultButton && smartSet && gameList && useProxb && rotateb && allReset && loadedheader) {
+        var eSize = 50;
+        var settingStuff = document.getElementsByClassName("sett")
+        for (var s = 0; s < settingStuff.length; s++) {
+            const tS = settingStuff[s];
+            if (tS.id==="seth") {
+                tS.style.fontSize = eSize + "px"
+            } else {
+                tS.style.fontSize = (eSize/3) + "px"
+            }
+        }
+        var settingStuff2 = document.getElementsByClassName("settb")
+        for (var s = 0; s < settingStuff2.length; s++) {
+            const tS = settingStuff2[s];
+            tS.style.fontSize = (eSize/3) + "px"
+        }
+        var settingStuff3 = document.getElementsByClassName("setthh")
+        for (var s = 0; s < settingStuff3.length; s++) {
+            const tS = settingStuff3[s];
+            tS.style.fontSize = (eSize/2) + "px"
+        }
+        //Longest if statement ever, can't really make it shorter
+        if (setbActive) {
+            maindiv.style.display = "none"
+            setdiv.style.display = ""
+            setbup = false;
+        } else {
+            maindiv.style.display = ""
+            setdiv.style.display = "none"
+        }
+        var scrollBarBuffer = 15;
+        
+        if (! ($(document).height() - $(window).height() >= 2) || setbActive) {
+            scrollBarBuffer = 0;
+        }
+
+        var active = "On"
+        if (!config.smartUpdate) {
+            active = "Off"
+        }
+        smartSet.innerHTML = active;
+        smartSet.style.backgroundColor = colors[active];
+
+        var active2 = "On"
+        if (!config.useProxy) {
+            active2 = "Off"
+        }
+        useProxb.innerHTML = active2;
+        useProxb.style.backgroundColor = colors[active2];
+
+        var active3 = "On"
+        if (!config.autoRotate) {
+            active3 = "Off"
+        }
+        rotateb.innerHTML = active3;
+        rotateb.style.backgroundColor = colors[active3];
+
+        var gameCount = games.length;
+        var gam;
+        for (var k=0;k<gameCount;k++) {
+            var tgam = games[k]
+            if (tgam.id) {
+                var add = "Name Unavailable (uId: "+tgam.id+")";
+                if (tgam.Name) {
+                    add = tgam.Name+" (uId: "+tgam.id+")";
+                }
+                if (gam) {
+                    gam = gam+"<br>"+add;
+                } else {
+                    gam = add;
+                }
+            }
+        }
+        loadedheader.innerHTML = "Loaded Games ("+gameCount+")"
+        if (!gam) {
+            gam = "No Games Are Currently Loaded"
+        }
+        gameList.innerHTML = gam;
+
+        if (searchResult) {
+            if (game_search_options.size > 0) {
+                return
+            }
+            for (var r=0; r < searchResult.games.length; r++) {
+                var tR = searchResult.games[r]
+                game_search_options.add(new Option(tR.name + " - " + tR.creatorName, ""));
+            }
+            game_search_options.size = 5;
+            game_search_options.style.display = ""
+            sresultButton.style.display = ""
+            allReset.style.display = "none"
+        }
+
+        if (bigh) {
+            bigh.style.fontSize = (eachSize*(1.25)).toString() + "px";
+            bigh.style.color = normalColor;
+        }
+    }
+
+    document.body.style.backgroundColor = backColor;
+
+    for (var x=1;x<=datas.length;x++) {
+        var thisCanv = document.getElementById(x);
+        if (thisCanv) {
+            var should = Math.floor(window.innerHeight/perScreen)
+            if (Math.floor(thisCanv.height)!==should) {
+                thisCanv.height = should;
+                eachSize = thisCanv.height;
+            }
+        }
+    }
+
+    if (setb) {
+        setb.style.color = normalColor;
+        setb.style.fontSize = size-5 + "px";
+        setb.style.height = size + "px";
+        setb.style.width = size + "px";
+    }
+
+    var cc = 0;
+    for (var key =0; key<games.length; key++) {
+        var game = games[key];
+        if (game && config.selectedGame === key) {
+            if (game.id && game.Name && game.Image && game.placeId && game.creatorData) {
+                var load = true;
+                for (var x=0;x<datas.length;x++) {
+                    if (game[datas[x]]===false) {
+                        load = false;
+                    }
+                }
+                if (load) {
+                    if (img && bigh && eachSize && setb) {
+                        if (bigh.innerHTML!==game.Name) {
+                           bigh.innerHTML = game.Name
+                        }
+                        img.src = game.Image;
+                        img.style.visibility = showStuff;
+                        var list = document.getElementsByClassName("h");
+                        for (var i = 0; i < list.length; i++) {
+                            list[i].style.fontSize = (eachSize*(5/6)).toString() + "px";
+                            list[i].style.color = snormalColor;
+                            list[i].style.visibility = showStuff;
+                        }
+                        var list2 = document.getElementsByClassName("s");
+                        const dirs = ["Custom1",0,0,1,2,2]
+                        for (var i = 0; i < list2.length; i++) {
+                            list2[i].style.cursor = "pointer";
+                            if (dirs[i]==="Custom1") {
+                                list2[i].href = "https://www.roblox.com/games/"
+                                + game.placeId+"/"+(game.Name.replace(" ","-"));
+                            } else {
+                                list2[i].href = redirectToApi(dirs[i]);
+                            }
+                        }
+                        if (img.complete) {
+                            for (var x=0;x<datas.length;x++) {
+                                var o = datas[x]
+                                slotsFor(x+1,x+1,game[o], o)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+}
+setInterval(doAnimation,1000/60)
+
+var a = false;
+var d = false;
+
+function lbf() {
+    config.selectedGame--;
+    if (config.selectedGame<0) {
+        config.selectedGame = games.length-1;
+    }
+}
+function rbf() {
+    config.selectedGame++;
+    if (config.selectedGame>games.length-1) {
+        config.selectedGame = 0;
+    }
+}
+
+function setbclick() {
+    if (games.length <= 0 && setbActive) {
+        alert("Add games before returning to the main screen!")
+        return
+    }
+    setbActive = !setbActive;
+}
+
+function setSmart(){
+    config.smartUpdate = !config.smartUpdate
+}
+
+function setProxy() {
+    config.useProxy = !config.useProxy;
+}
+
+function setRotate() {
+    config.autoRotate = !config.autoRotate;
+}
+
+var sets = ["smartUpdate", "autoRotate", "useProxy"]
+function generateFixedUrl() {
+    var fullUrl = window.location.href
+    var qPos = fullUrl.indexOf("?");
+    if (qPos<0) {
+        qPos = fullUrl.length
+    }
+    var newUrl = fullUrl.substring(0, qPos)
+
+    return newUrl
+}
+
+function setReset() {
+    window.location = generateFixedUrl();
+}
+
+function convertUrl(url,obj) {
+    var splits = url.split('/');
+    var num;
+    for (var x=0;x<splits.length;x++) {
+        if (splits[x-1]) {
+            if (splits[x-1]==="games") {
+                if (parseInt(splits[x])) {
+                    num = splits[x];
+                    break;
+                }
+            }
+        }
+    }
+    if (num) {
+        var goalUrl = "https://games.roblox.com/v1/games/multiget-place-details?placeIds="+num
+        obj.href = goalUrl;
+        obj.innerHTML = goalUrl;
+    } else {
+        alert("Invalid Url!")
+    }
+}
+
+function updateUrl() {
+    let base = generateFixedUrl()
+    let gamesAsString = ""
+    for (let i = 0; i < games.length; i++) {
+        const element = games[i];
+        if (gamesAsString === "") {
+            gamesAsString = "games=" + element.id
+        } else {
+            gamesAsString += "," + element.id
+        }
+    }
+    
+    let fullUrl = base + "?" + gamesAsString
+    
+    if (window.history.replaceState) {
+        window.history.replaceState({path:fullUrl},'', fullUrl);
+    }
+
+    setbActive = false
+}
+
+function addGame() {
+    var textBox = document.getElementById("gameAddI")
+    var obj = document.getElementById("gameAddH")
+    var obj2 = document.getElementById("gameAddH2")
+    if (textBox && obj && obj2) {
+        obj2.innerHTML = `Copy the "universeId" from the link below and paste it into the "Input Universe Id" box.`
+        convertUrl(textBox.value, obj)
+    }
+}
+
+function addGameId() {
+    var textBox = document.getElementById("gameAddI2")
+    if (textBox) {
+        createGame(textBox.value)
+        updateUrl();
+    }
+}
+
+function addGameIdKeyDown() {
+    if (event.key === "Enter") {
+        addGameId()
+    }
+}
+
+var searchUrl = "https://games.roblox.com/v1/games/list?model.keyword="
+function searchTerms() {
+    searchResult = false;
+    var sI = document.getElementById("gameAddS1")
+    if (sI) {
+        updateDataFrom("JustDo", searchUrl + sI.value, "Search")
+        sI.value = ""
+    }
+}
+
+function searchTermsKeyDown() {
+    if (event.key === "Enter") {
+        searchTerms()
+    }
+}
+
+function addTerms() {
+    if (searchResult) {
+        if (game_search_options.size > 0) {
+            let id = parseInt(searchResult.games[game_search_options.selectedIndex].universeId);
+            if (id) {
+                createGame(id)
+                updateUrl()
+                searchResult = null;
+
+                var i, L = game_search_options.options.length - 1;
+                for(i = L; i >= 0; i--) {
+                    game_search_options.remove(i);
+                }
+
+                game_search_options.size = 0;
+
+                game_search_options.style.display = "none"
+                sresultButton.style.display = "none"
+                allReset.style.display = ""
+            }
+        }
+    }
+}
+
+function parseQuery(queryString) {
+    var query = {};
+    var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+    for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split('=');
+        query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+    }
+    return query;
+}
+
+function loadDataFromUrl() {
+    var fullUrl = window.location.href
+    var qPos = fullUrl.indexOf("?");
+    if (qPos>=0) {
+        var newUrl = decodeURI(fullUrl.replace(fullUrl.substring(0,fullUrl.indexOf("?")+1),""))
+        var d = parseQuery(newUrl)
+        if (d) {
+            if (d.games) {
+                let split = d.games.split(",")
+                for (let index = 0; index < split.length; index++) {
+                    createGame(split[index])
+                    setbActive = false
+                }
+            }
+        }
+        return true;
+    } else {
+        return true;
+    }
+}
+
+function getSort(nam) {
+    var amtToGet = 40
+    var db = true;
+    var goTo = "https://games.roblox.com/v1/games/list?model"
+    updateDataFrom(false,goTo,"SortResults")
+    setInterval(function() {
+        if (sortsResult && db) {
+            db = false
+            games = [];
+            for (var r=0;r<sortsResult.games.length;r++) {
+                var tR = sortsResult.games[r]
+                if (tR) {
+                    if (r<amtToGet) {
+                        createGame(tR.universeId);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            updateUrl();
+            location.reload();
+        }
+    }, 100)
+}
+
+function redirectToApi(num) {
+    while (!currentApiLinks[num] && currentApiLinks[num] !== false) {
+        currentApiLinks.push(false)
+    }
+    const lG = games[config.selectedGame]
+    if (lG) {
+        currentApiLinks[num] = urls[num].Url.replace("idhere", lG.id);
+        const val = currentApiLinks[parseInt(num)]
+        return val;
+    }
+}
+
+function removeAllGames() {
+    games = [];
+    setReset();
+}
+
+$(document).ready(function(){
+    const loaded = loadDataFromUrl()
+    if (!loaded) {
+        setReset();
+    } else {
+        console.log("Successfully started "+appName+" "+appVersion+". Logs will be logged below.");
+        console.log("smartUpdate: "+config.smartUpdate+
+        ". If set to true, "+appName+" will only reload the currently selected game's data.");
+
+        
+        updateStuff();
+        $(document).mousemove(function(event) {//Keybinds and mouse movement
+            mx = event.pageX;
+            my = event.pageY;
+        });
+        function keyDownManage(event) {
+            if (event.which===65 || event.which===81 || event.which===37) {
+                if (!a) {
+                    a = true;
+                    lbf();
+                }
+            } else if (event.which===68 || event.which===69 || event.which===39) {
+                if (!d) {
+                    d = true;
+                    rbf();
+                }
+            }
+        }
+        function keyUpManage(event) {
+            if (event.which===65 || event.which===81 || event.which===37) {
+                a = false
+            } else if (event.which===68 || event.which===69 || event.which===39) {
+                d = false
+            }
+        }
+        $("body").keydown(function(event){ 
+            keyDownManage(event);
+        });
+        $("body").keyup(function(event){ 
+            keyUpManage(event);
+        });
+        $("div").keydown(function(event){ 
+            keyDownManage(event);
+        });
+        $("div").keyup(function(event){ 
+            keyUpManage(event);
+        });
+    }
+});
+
+
+//CSS below:
+</script>
+
+
+<style>
+body {
+    padding: 0px;
+    margin: 0px;
+    min-width: 0%;
+    min-height: 0%;
+}
+
+canvas {
+    visibility: hidden;
+    opacity: 1;
+}
+
+img {
+  visibility: hidden;
+  margin-left: auto;
+  margin-right: auto;
+  width: 45%;
+}
+
+#i1 {
+  position: relative;
+  top: 0px;
+  left: 0px;
+  z-index: 1;
+}
+
+#i2 {
+  position: relative;
+  top: 0px;
+  left: 0px;
+  z-index: 2;
+}
+
+.s
+{
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-bottom: 20px; 
+    text-align: center;
+    display: inline-block;    
+    line-height: 0px;
+    color: rgba(0,0,0,0);
+}
+
+.s2
+{
+    width: 0px;
+    height: 0px;
+    text-align: center;
+    display: inline-block;
+    border-right: 1px solid #777777;
+    border-left: 1px solid #777777;
+}
+
+.container
+{
+    text-align: center;
+    width: 100%;
+    position: relative;
+    line-height: 0px;
+}
+
+.h {
+    text-align: center;
+    font-family: Arial;
+    visibility: hidden;
+    opacity: 1;
+}
+
+.c {
+    text-align: center;
+}
+
+.bigh {
+    margin: 0px;
+    text-align: center;
+    font-family: Arial;
+    display: inline;
+    line-height: normal;
+}
+
+.containerimg {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  text-align: center;
+  width: 45%;
+  font-family: Arial;
+}
+
+.containerimg img {
+  width: 100%;
+  height: auto;
+}
+
+#lb {
+  height: 25%;
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(0%, -50%);
+  background-color: #555;
+  color: white;
+  font-size: 200%;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  opacity: 0;
+  z-index: 3;
+}
+#rb {
+  height: 25%;
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translate(-100%, -50%);
+  background-color: #555;
+  color: white;
+  font-size: 200%;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  opacity: 0;
+  z-index: 3;
+}
+
+button {
+    outline: none;
+}
+
+button:focus {
+    border: none;
+}
+
+body {
+    background-color: "#777777";
+    overflow-x: hidden;
+    overflow-y: visible;
+    text-align: center;
+}
+
+#maindiv {
+    width: 100%;
+    position: relative;
+    left: 0%;
+    top: 0%;
+    text-align: center;
+}
+
+#setdiv {
+    background: transparent;
+    top: 0%;
+    z-index: 5;
+}
+
+#seth {
+    font-size: 300%;
+}
+
+.setthh {
+    color: rgb(255, 255, 255);
+    opacity: 1;
+    border: none;
+    line-height: 0px;
+    font-size: 125%;
+}
+
+.sett {
+    color: rgb(255, 255, 255);
+    opacity: 1;
+    display: inline-block;
+    line-height: normal;
+}
+.settb {
+    opacity: 1;
+    color: rgb(255, 255, 255);
+    background: #194372;
+    border: none;
+    display: inline-block;
+    line-height: normal;
+    margin: 2.5px;
+    cursor: pointer;
+}
+
+#setb {
+    position: relative;
+    top: 0%;
+    left: 100%;
+    transform: translate(-100%, 0%);
+    position: absolute;
+    background-color: rgba(125,125,125,0);
+    color: white;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    display: inline-block;
+}
+
+hr {
+    border:1px dashed #000000;
+}
+
+input {
+    background-color: #1a1a1a;
+    border: 2px solid #000000;
+}
+
+#titleImage {
+    visibility: visible;
+    width: 15%;
+}
+
+input::placeholder {
+    color: #fff;
+    opacity: 0.5;
+    font-size: 14px;
+}
+    </style>
+</head>
+    <body onload="start()">
+        
+        <div id="header"></div>
+
+        <div id="site_container">
+            <div id="site_container_container">
+                <div id="body">
+                    <div style = "position: relative; margin-top: 20px;">
+                        <div id="maindiv">
+                            <h1 class="bigh" id = "bigh2"></h1>
+                            <div class="containerimg">
+                                <img id="i1" alt="Image"></img>
+                                <img id="i2" alt="Image"></img>
+                                <button id="lb" onclick="lbf()">&lt;</button>
+                                <button id="rb" onclick="rbf()">&gt;</button>
+                            </div>
+                            
+                            <a class = "s" id="a6" href = "" target = "_blank">
+                                <h1 class="bigh" id = "bigh"></h1>
+                            </a>
+
+                            <div class = "container">
+                                <a class = "s" id="a1" href = "" target = "_blank">
+                                    <h3 class = "h">Playing</h3>
+                                    <canvas class = "c" id=1></canvas>
+                                </a>
+
+                                <div class = "s2"> </div>
+
+                                <a class = "s" id="a2" href = "" target = "_blank">
+                                    <h3 class = "h">Total Visits</h3>
+                                    <canvas class = "c" id=2></canvas>
+                                </a>
+                                
+                                <div class = "s2"> </div>
+
+                                <a class = "s" id="a3" href = "" target = "_blank">
+                                    <h3 class = "h">Favorites</h3>
+                                    <canvas class = "c" id=3></canvas>
+                                </a>
+                                
+                                <div class = "s2"> </div>
+
+                                <a class = "s" id="a4" href = "" target = "_blank">
+                                    <h3 class = "h">Likes</h3>
+                                    <canvas class = "c" id=4></canvas>
+                                </a>
+                                
+                                <div class = "s2"> </div>
+
+                                <a class = "s" id="a5" href = "" target = "_blank">
+                                    <h3 class = "h">Dislikes</h3>
+                                    <canvas class = "c" id=5></canvas>
+                                </a>
+                            </div>
+                        </div>
+                        <button id="setb" onclick="setbclick()">⚙</button>
+                        <div id="setdiv" style="display: none;">
+                            <img id="titleImage" src="title.png"></img>
+
+                            <hr style="height:0px; visibility:hidden; margin: 0px;" />
+                            <h1 class="setthh">Add Games</h1>
+
+                            <p class="sett" style="margin-bottom: 0px;">Add by the game's universe id:  <br> (Not roblox.com/games/id. That id is the place id): </p> 
+                            <br>
+                            <input id = "gameAddI2" class="sett" placeholder="Enter a universe id..." onkeydown="addGameIdKeyDown()" type="text">
+                            <button id= "gameAddB2" class="settb" onclick="addGameId()">➔</button>
+
+                            <br>
+                            <br>
+
+                            <p class="sett" style="margin: 0px;">Add by the game's name: </p>
+
+                            <hr style="height: 0px; visibility:hidden; margin: 0px;"/>
+
+                            <input id = "gameAddS1" class="sett" placeholder="Search a game's name..." onkeydown="searchTermsKeyDown()" type="text">
+                            <button id= "gameAddS3" class="settb" onclick="searchTerms()">➔</button>
+                            
+                            <hr style="height: 10px; visibility:hidden; margin: 0px;"/>
+                            <button id= "removeAll" class="settb" onclick="removeAllGames()">Remove All Games</button>
+                            <select id="game_search_options"  style="display: none" size=0>
+                            </select>
+                            <br>
+                            <button id= "gameAddS5" class="settb" onclick="addTerms()" style="display: none">Add Selected ➔</button>
+
+                            <br>
+                            <h1 class="setthh" id="loadedheader">Loaded Games</h1>
+                            <p id ="gamelist" class="sett"></p>
+                            <hr>
+                            <h1 class="setthh" style="margin-top: 20px">Popular</h1>
+                            <button class="settb" onclick="getSort()">Show Top 40 Games</button>
+                            <br>
+                            <hr>
+                            <h1 class="setthh">Customization</h1>
+                            <p class="sett" style="margin: 0px; margin-top: 10px;" >Auto Rotate<br>(Rotate through slowly): </p> <button id="rotateSet" class="settb" onclick="setRotate()">Loading...</button>
+                            <hr style="height:10px; visibility:hidden; margin: 0px;" />
+                            <p class="sett" style="margin: 0px;" >Smart Update: </p> <button id="smartSet" class="settb" onclick="setSmart()">Loading...</button>
+                            <hr style="height:10px; visibility:hidden; margin: 0px;" />
+                            <p class="sett" style="margin: 0px;" >Smart Update updates data every cycle for only the game currently visible.</p> 
+                            <hr style="height:10px; visibility:hidden; margin: 0px;" />
+                            <p class="sett" style="margin: 0px;" >Use CORS Proxy: </p> <button id="proxySet" class="settb" onclick="setProxy()">Loading...</button>
+                            <hr style="height:10px; visibility:hidden; margin: 0px;" />
+                            <p class="sett" style="margin: 0px;" >Only disable this if you understand what it means.</p> 
+                            <br>
+                            <button id="resetSet" class="settb" onclick="setReset()">Update Stats</button>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div id="footer"></div>
+            </div>
+        </div>
+    </body>
+</html>

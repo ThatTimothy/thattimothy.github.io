@@ -1,0 +1,169 @@
+* {
+  padding: 0px;
+  margin: 0px;
+  min-width: 0%;
+  min-height: 0%;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+html {
+  vertical-align: middle;
+  text-align: center;
+}
+
+body {
+  background-color: #36393e;
+  min-height: 100vh;
+  min-width: 100%;
+  margin: 0px;
+}
+
+button {
+  background-color: #373a3f;
+  color: #ffffff;
+  outline: none;
+  border-top: 2px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+  border-left: 2px solid rgba(255, 255, 255, 0.5);
+  border-right: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+#top {
+  padding-top: 20px;
+}
+
+#content {
+  padding: 10px;
+}
+
+.topButton {
+  font-size: 50px;
+  margin: 10px;
+  padding: 10px;
+}
+
+#changeMode {
+  margin-bottom: 25px;
+}
+
+#hint {
+  font-size: 40px;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.field {
+  background-color: #373a3f;
+  color: #ffffff;
+  font-size: 20px;
+  padding: 10px;
+  border: 2px solid rgb(19, 19, 19);
+  border-radius: 7px;
+}
+
+.field::placeholder {
+  color: #ffffff;
+  opacity: 0.95;
+}
+
+.info,
+.smallInfo,
+.checkinfo {
+  color: #ffffff;
+  font-size: 30px;
+  margin: 5px;
+}
+
+.smallInfo {
+  font-size: 20px;
+}
+
+#headerPart2 {
+  margin-top: 20px;
+}
+
+#activateButton {
+  margin-top: 30px;
+  font-size: 50px;
+  padding: 20px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+#output {
+  margin-top: 10px;
+  word-break: break-all;
+}
+
+#outputHint {
+  margin-top: 20px;
+}
+
+#clipboardCopy {
+  padding: 10px;
+  font-size: 30px;
+  margin-top: 10px;
+  display: none;
+}
+
+#title {
+  object-fit: contain;
+  width: 35%;
+}
+
+#checkContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-content: center;
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.checkinfo {
+  width: fit-content;
+  display: inline;
+  padding-left: 15px;
+  padding-right: 5px;
+}
+
+.check {
+  appearance: none;
+  background-color: rgb(32, 32, 32);
+  border: 1px solid #cacece;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0px -15px 10px -12px rgba(0, 0, 0, 0.05);
+  padding: 9px;
+  border-radius: 3px;
+  display: inline-block;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  margin: auto 0;
+}
+
+.check:checked {
+  background-color: rgb(56, 146, 38);
+}
+
+.check:after {
+  content: "✖";
+  font-size: 20px;
+  position: absolute;
+  color: #ff0000;
+  top: -1px;
+  left: 6px;
+}
+
+.check:checked:after {
+  content: "\2714";
+  color: #fff;
+  top: 0px;
+  left: 6px;
+}
+
+#info3 {
+  margin-top: 25px;
+  margin-bottom: 0;
+}

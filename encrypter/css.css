@@ -1,0 +1,37 @@
+* {
+	padding: 0px;
+	margin: 0px;
+	min-width: 0%;
+	min-height: 0%;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+html {
+	vertical-align: middle;
+	text-align: center;
+}
+
+body {
+	--background-color: #36393e;
+	background-color: var(--background-color);
+	min-height: 100vh;
+	min-width: 100%;
+	margin: 0px;
+}
+
+#body {
+	padding: 20px;
+}
+
+#body p,
+#body a {
+	color: #fff;
+}
+
+#body a {
+	transition: opacity 0.25s;
+}
+
+#body a:hover {
+	opacity: 0.75;
+}
